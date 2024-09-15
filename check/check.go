@@ -6,7 +6,7 @@ import (
 	"sort"
 )
 
-// Check describes what methods various checks (gofmt, go lint, etc.)
+// Check describes what methods various checks (gofmt, revive, etc.)
 // should implement
 type Check interface {
 	Name() string
@@ -59,7 +59,7 @@ func Run(dir string, cli bool) (ChecksResult, error) {
 	checks := []Check{
 		GoFmt{Dir: dir, Filenames: filenames},
 		GoVet{Dir: dir, Filenames: filenames},
-		// GoLint{Dir: dir, Filenames: filenames},
+		Revive{Dir: dir, Filenames: filenames},
 		GoCyclo{Dir: dir, Filenames: filenames},
 		License{Dir: dir, Filenames: []string{}},
 		Misspell{Dir: dir, Filenames: filenames},

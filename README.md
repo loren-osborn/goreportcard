@@ -2,7 +2,7 @@
 
 # Go Report Card
 
-A web application that generates a report on the quality of an open source Go project. It uses several measures, including `gofmt`, `go vet`, `go lint` and `gocyclo`. To get a report on your own project, try [goreportcard.com](https://goreportcard.com).
+A web application that generates a report on the quality of an open source Go project. It uses several measures, including `gofmt`, `go vet`, `revive` and `gocyclo`. To get a report on your own project, try [goreportcard.com](https://goreportcard.com).
 
 ### Sponsors
 
@@ -64,7 +64,7 @@ Issues ................. 2
 gofmt ............... 100%
 go_vet ............... 99%
 gocyclo .............. 99%
-golint .............. 100%
+revive .............. 100%
 ineffassign ......... 100%
 license ............. 100%
 misspell ............ 100%
@@ -89,7 +89,7 @@ gocyclo .............. 99%
 gocyclo download/download.go:22
         warning: cyclomatic complexity 17 of function download() is high (> 15) (gocyclo)
 
-golint .............. 100%
+revive .............. 100%
 ineffassign ......... 100%
 license ............. 100%
 misspell ............ 100%

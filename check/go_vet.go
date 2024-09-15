@@ -21,7 +21,7 @@ func (g GoVet) Percentage() (float64, []FileSummary, error) {
 	return GoTool(g.Dir, g.Filenames, []string{"gometalinter", "--deadline=180s", "--disable-all", "--enable=vet"})
 }
 
-// Description returns the description of go lint
+// Description returns the description of go vet
 func (g GoVet) Description() string {
 	return `<code>go vet</code> examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string.`
 }
