@@ -1,14 +1,18 @@
 package check
 
 import (
+	"bytes"
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
+	"errors"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -336,7 +340,14 @@ outer:
 // on a directory
 func GoTool(dir string, filenames, command []string) (float64, []FileSummary, error) {
 	var enabledCheck = command[0]
+	// Backwards compatibility?
 	if command[0] == "gometalinter" {
+		command = append([]string{"golangci-lint", "run"}, command[1:]...)
+	}
+	if command[0] == "golangcilint" {
+		command[0] = "golangci-lint"
+	}
+	if command[0] == "golangci-lint" {
 		enabledCheck = command[len(command)-1]
 	}
 
@@ -354,9 +365,9 @@ func GoTool(dir string, filenames, command []string) (float64, []FileSummary, er
 
 	params := command[1:]
 
-	if command[0] == "gometalinter" {
-		params = addSkipDirs(params)
-	}
+	// if command[0] == "golangci-lint" {
+	// 	params = addSkipDirs(params)
+	// }
 
 	switch {
 	case strings.Contains(enabledCheck, "cyclo"):
@@ -373,17 +384,58 @@ func GoTool(dir string, filenames, command []string) (float64, []FileSummary, er
 		cmd.Dir = dir
 	}
 
+	// Buffers to hold stdout and stderr
+	stdoutBuf := new(bytes.Buffer)
+	stderrBuf := new(bytes.Buffer)
+
+	// Pipes for stdout and stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return 0, []FileSummary{}, err
+		return 0, nil, err
 	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return 0, nil, err
+	}
+
+    // // Create the TeeReader that reads from original and copies to buffer
+    // stdoutTeeReader, stdoutBuf := newTeeReadCloser(stdout)
 
 	err = cmd.Start()
 	if err != nil {
 		return 0, []FileSummary{}, err
 	}
 
-	out := bufio.NewScanner(stdout)
+	// Use goroutines to read stdout and stderr concurrently
+	var readErr error
+	var readErrMutex sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	readToBuffer := func(reader io.Reader, buffer *bytes.Buffer) {
+		defer wg.Done()
+		if _, err := io.Copy(buffer, reader); err != nil && err != io.EOF {
+			readErrMutex.Lock()
+			defer readErrMutex.Unlock()
+			if readErr != nil {
+				readErr = errors.Join(readErr, err) // Use errors.Join to join multiple errors
+			} else {
+				readErr = err
+			}
+		}
+	}
+
+	go readToBuffer(stdout, stdoutBuf)
+	go readToBuffer(stderr, stderrBuf)
+
+	// Wait for both stdout and stderr to be read
+	wg.Wait()
+
+	if readErr != nil {
+		return 0, []FileSummary{}, readErr
+	}
+
+	out := bufio.NewScanner(stdoutBuf)
 
 	// the same file can appear multiple times out of order
 	// in the output, so we can't go line by line, have to store
@@ -407,9 +459,27 @@ func GoTool(dir string, filenames, command []string) (float64, []FileSummary, er
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		// The program has exited with an exit code != 0
 
+		// dataToDump := map[string]any{
+		// 	"dir": dir,
+		// 	"filenames, ": filenames,
+		// 	"command": command,
+		// 	"Stderr": string(exitErr.Stderr),
+		// 	"errorMsg": err.Error(),
+		// }
+		// byteStr,_ := json.Marshal(dataToDump)
+		// _, _ = os.Stderr.Write([]byte(string(byteStr) + "\n"))
+		// panic(string(byteStr))
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			// some commands exit 1 when files fail to pass (for example go vet)
 			if status.ExitStatus() != 1 {
+				exitCode := cmd.ProcessState.ExitCode()
+				err = &CommandExecutionError{
+					Command:  command,
+					Stdout:   stdoutBuf,
+					Stderr:   stderrBuf,
+					ExitCode: exitCode,
+					Err:      err,
+				}
 				return 0, failed, err
 				// return 0, Error{}, err
 			}

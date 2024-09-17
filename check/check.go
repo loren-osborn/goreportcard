@@ -3,6 +3,8 @@ package check
 import (
 	"fmt"
 	"log"
+	// "os"
+	// "os/exec"
 	"sort"
 )
 
@@ -64,7 +66,7 @@ func Run(dir string, cli bool) (ChecksResult, error) {
 		License{Dir: dir, Filenames: []string{}},
 		Misspell{Dir: dir, Filenames: filenames},
 		IneffAssign{Dir: dir, Filenames: filenames},
-		// Staticcheck{Dir: dir, Filenames: filenames},
+		Staticcheck{Dir: dir, Filenames: filenames},
 		// ErrCheck{Dir: dir, Filenames: filenames}, // disable errcheck for now, too slow and not finalized
 	}
 
@@ -76,6 +78,11 @@ func Run(dir string, cli bool) (ChecksResult, error) {
 			if err != nil {
 				log.Printf("ERROR: (%s) %v", c.Name(), err)
 				errMsg = err.Error()
+				// if exitErr, ok := err.(*exec.ExitError); ok {
+				// 	errMsg = string(exitErr.Stderr) + "\n" + errMsg
+				// 	_, _ = os.Stderr.Write([]byte(errMsg + "\n"))
+				// 	panic(errMsg)
+				// }
 			}
 			s := Score{
 				Name:          c.Name(),

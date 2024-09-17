@@ -18,7 +18,7 @@ func (g Revive) Weight() float64 {
 
 // Percentage returns the percentage of .go files that pass revive
 func (g Revive) Percentage() (float64, []FileSummary, error) {
-	return GoTool(g.Dir, g.Filenames, []string{"gometalinter", "--deadline=180s", "--disable-all", "--enable=revive", "--min-confidence=0.85", "--vendor"})
+	return GoTool(g.Dir, g.Filenames, []string{"golangci-lint", "run", "--disable-all", "--enable=revive", "--vendor"})
 }
 
 // Description returns the description of revive
