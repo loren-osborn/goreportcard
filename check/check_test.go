@@ -5,7 +5,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	cr, err := Run("testdata/testrepo_v0.1.0", false)
+	cr, err := Run("testdata/testrepo", false)
 	if err != nil {
 		t.Fatal(err)
 	}

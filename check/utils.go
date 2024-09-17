@@ -16,6 +16,8 @@ import (
 	"syscall"
 )
 
+const debugMode = false
+
 var (
 	skipDirs       = []string{"Godeps", "vendor", "third_party", "testdata"}
 	skipSuffixes   = []string{".pb.go", ".pb.gw.go", ".generated.go", "bindata.go", "_string.go"}
@@ -340,13 +342,6 @@ outer:
 // on a directory
 func GoTool(dir string, filenames, command []string) (float64, []FileSummary, error) {
 	var enabledCheck = command[0]
-	// Backwards compatibility?
-	if command[0] == "gometalinter" {
-		command = append([]string{"golangci-lint", "run"}, command[1:]...)
-	}
-	if command[0] == "golangcilint" {
-		command[0] = "golangci-lint"
-	}
 	if command[0] == "golangci-lint" {
 		enabledCheck = command[len(command)-1]
 	}
@@ -472,13 +467,15 @@ func GoTool(dir string, filenames, command []string) (float64, []FileSummary, er
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			// some commands exit 1 when files fail to pass (for example go vet)
 			if status.ExitStatus() != 1 {
-				exitCode := cmd.ProcessState.ExitCode()
-				err = &CommandExecutionError{
-					Command:  command,
-					Stdout:   stdoutBuf,
-					Stderr:   stderrBuf,
-					ExitCode: exitCode,
-					Err:      err,
+				if debugMode {
+					exitCode := cmd.ProcessState.ExitCode()
+					err = &CommandExecutionError{
+						Command:  append([]string{command[0]}, params...),
+						Stdout:   stdoutBuf,
+						Stderr:   stderrBuf,
+						ExitCode: exitCode,
+						Err:      err,
+					}
 				}
 				return 0, failed, err
 				// return 0, Error{}, err

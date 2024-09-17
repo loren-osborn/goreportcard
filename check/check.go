@@ -61,11 +61,13 @@ func Run(dir string, cli bool) (ChecksResult, error) {
 	checks := []Check{
 		GoFmt{Dir: dir, Filenames: filenames},
 		GoVet{Dir: dir, Filenames: filenames},
+		GoSimple{Dir: dir, Filenames: filenames},
 		Revive{Dir: dir, Filenames: filenames},
 		GoCyclo{Dir: dir, Filenames: filenames},
 		License{Dir: dir, Filenames: []string{}},
 		Misspell{Dir: dir, Filenames: filenames},
 		IneffAssign{Dir: dir, Filenames: filenames},
+		Unused{Dir: dir, Filenames: filenames},
 		Staticcheck{Dir: dir, Filenames: filenames},
 		// ErrCheck{Dir: dir, Filenames: filenames}, // disable errcheck for now, too slow and not finalized
 	}
